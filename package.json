@@ -1,0 +1,20 @@
+{
+  "name": "grammar-study-monorepo",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web dev",
+    "build:web": "pnpm --dir apps/web build",
+    "preview:web": "pnpm --dir apps/web preview",
+    "dev:api": "uvicorn app.main:app --reload --app-dir apps/api",
+    "lint:web": "pnpm --dir apps/web lint",
+    "typecheck:web": "pnpm --dir apps/web typecheck",
+    "lint:api": ".venv\\Scripts\\python.exe -m ruff check apps/api/app apps/api/tests",
+    "test:api": ".venv\\Scripts\\python.exe -m pytest apps/api/tests -q",
+    "check": "pnpm lint:web && pnpm typecheck:web && pnpm lint:api && pnpm test:api",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

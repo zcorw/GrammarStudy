@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择题练习 - 日语文法学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="index.html" class="logo">📚 日语文法</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="practice-container">
+                <button class="btn-back" onclick="history.back()">← 返回文法详情</button>
+
+                <!-- Grammar context -->
+                <div class="grammar-context" id="grammarContext">
+                    <!-- Grammar info will be inserted here -->
+                </div>
+
+                <!-- Question card -->
+                <div class="question-card" id="questionCard">
+                    <div class="question-header">
+                        <span class="question-number" id="questionNumber">第 1 题</span>
+                        <span class="question-progress" id="questionProgress">1/5</span>
+                    </div>
+
+                    <div class="question-content" id="questionContent">
+                        <!-- Question will be inserted here -->
+                    </div>
+
+                    <div class="options-container" id="optionsContainer">
+                        <!-- Options will be inserted here -->
+                    </div>
+
+                    <div class="feedback-section" id="feedbackSection" style="display: none;">
+                        <!-- Feedback will be shown here -->
+                    </div>
+
+                    <div class="question-actions">
+                        <button class="btn-primary btn-large" id="submitBtn">提交答案</button>
+                        <button class="btn-primary btn-large" id="nextBtn" style="display: none;">下一题</button>
+                        <button class="btn-secondary btn-large" id="finishBtn" style="display: none;">完成练习</button>
+                    </div>
+                </div>
+
+                <!-- Results summary -->
+                <div class="results-summary" id="resultsSummary" style="display: none;">
+                    <!-- Results will be shown here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let currentGrammar = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let selectedAnswer = null;
+        let answers = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const grammarId = urlParams.get('id');
+
+            if (grammarId) {
+                loadPractice(grammarId);
+            }
+
+            document.getElementById('submitBtn').addEventListener('click', submitAnswer);
+            document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+            document.getElementById('finishBtn').addEventListener('click', showResults);
+        });
+
+        function loadPractice(grammarId) {
+            currentGrammar = getGrammarById(grammarId);
+            if (!currentGrammar) {
+                alert('文法不存在');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            questions = getPracticeQuestions(grammarId);
+
+            // Display grammar context
+            document.getElementById('grammarContext').innerHTML = `
+                <h3 class="context-title">${currentGrammar.title}</h3>
+                <p class="context-meaning">${currentGrammar.meaning}</p>
+            `;
+
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            selectedAnswer = null;
+
+            document.getElementById('questionNumber').textContent = `第 ${currentQuestionIndex + 1} 题`;
+            document.getElementById('questionProgress').textContent = `${currentQuestionIndex + 1}/${questions.length}`;
+
+            document.getElementById('questionContent').innerHTML = `
+                <p class="question-text">${question.question}</p>
+            `;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = question.options.map((option, index) => `
+                <button class="option-btn" data-index="${index}">
+                    <span class="option-label">${String.fromCharCode(65 + index)}</span>
+                    <span class="option-text">${option}</span>
+                </button>
+            `).join('');
+
+            // Add click handlers
+            optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectOption(parseInt(this.dataset.index));
+                });
+            });
+
+            // Reset UI
+            document.getElementById('feedbackSection').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('finishBtn').style.display = 'none';
+        }
+
+        function selectOption(index) {
+            selectedAnswer = index;
+
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach((btn, i) => {
+                btn.classList.toggle('selected', i === index);
+            });
+        }
+
+        function submitAnswer() {
+            if (selectedAnswer === null) {
+                alert('请选择一个答案');
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            const isCorrect = selectedAnswer === question.correctAnswer;
+
+            answers.push({
+                questionIndex: currentQuestionIndex,
+                selectedAnswer: selectedAnswer,
+                isCorrect: isCorrect
+            });
+
+            // Show feedback
+            const feedbackSection = document.getElementById('feedbackSection');
+            feedbackSection.style.display = 'block';
+            feedbackSection.innerHTML = `
+                <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
+                    <div class="feedback-icon">${isCorrect ? '✓' : '✗'}</div>
+                    <div class="feedback-content">
+                        <p class="feedback-title">${isCorrect ? '回答正确！' : '回答错误'}</p>
+                        ${!isCorrect ? `<p class="feedback-correct">正确答案：${String.fromCharCode(65 + question.correctAnswer)}</p>` : ''}
+                        <p class="feedback-explanation">${question.explanation}</p>
+                    </div>
+                </div>
+            `;
+
+            // Highlight correct/incorrect options
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach((btn, i) => {
+                if (i === question.correctAnswer) {
+                    btn.classList.add('correct');
+                } else if (i === selectedAnswer && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+                btn.disabled = true;
+            });
+
+            // Show next/finish button
+            document.getElementById('submitBtn').style.display = 'none';
+            if (currentQuestionIndex < questions.length - 1) {
+                document.getElementById('nextBtn').style.display = 'block';
+            } else {
+                document.getElementById('finishBtn').style.display = 'block';
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        function showResults() {
+            const correctCount = answers.filter(a => a.isCorrect).length;
+            const totalCount = questions.length;
+            const percentage = Math.round((correctCount / totalCount) * 100);
+
+            document.getElementById('questionCard').style.display = 'none';
+
+            const resultsSummary = document.getElementById('resultsSummary');
+            resultsSummary.style.display = 'block';
+            resultsSummary.innerHTML = `
+                <div class="results-card">
+                    <h2 class="results-title">练习完成！</h2>
+                    <div class="results-score">
+                        <div class="score-circle">
+                            <span class="score-number">${percentage}%</span>
+                        </div>
+                        <p class="score-text">正确率</p>
+                    </div>
+                    <div class="results-details">
+                        <div class="result-item">
+                            <span class="result-label">正确</span>
+                            <span class="result-value correct">${correctCount}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">错误</span>
+                            <span class="result-value incorrect">${totalCount - correctCount}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">总计</span>
+                            <span class="result-value">${totalCount}</span>
+                        </div>
+                    </div>
+                    <div class="results-actions">
+                        <button class="btn-primary btn-large" onclick="location.reload()">再练一次</button>
+                        <button class="btn-secondary btn-large" onclick="history.back()">返回文法详情</button>
+                    </div>
+                </div>
+            `;
+
+            // Save practice result
+            savePracticeResult(currentGrammar.id, correctCount, totalCount);
+        }
+    </script>
+</body>
+</html>

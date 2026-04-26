@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建文法 - 日语文法学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="index.html" class="logo">📚 日语文法</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="create-container">
+                <!-- Progress Steps -->
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">输入文法</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">AI生成</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">调整优化</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">完成</div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Input -->
+                <div class="step-content" id="step1" style="display: block;">
+                    <div class="step-card">
+                        <h2 class="step-title">输入要创建的文法</h2>
+                        <p class="step-description">请输入日语文法关键词或句型，AI 将帮助您生成结构化的学习卡片</p>
+                        <div class="input-group">
+                            <label class="input-label">文法关键词或句型</label>
+                            <input
+                                type="text"
+                                class="input-large"
+                                id="grammarInput"
+                                placeholder="例如：～ば～ほど、～てしまう"
+                            >
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">补充说明（可选）</label>
+                            <textarea
+                                class="textarea-large"
+                                id="descriptionInput"
+                                placeholder="可以补充您想了解的具体内容，如使用场景、例句要求等"
+                                rows="4"
+                            ></textarea>
+                        </div>
+                        <button class="btn-primary btn-large" id="generateBtn">开始生成</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Generating -->
+                <div class="step-content" id="step2" style="display: none;">
+                    <div class="step-card">
+                        <div class="loading-section">
+                            <div class="loading-spinner"></div>
+                            <h2 class="loading-title">AI 正在生成文法卡片...</h2>
+                            <p class="loading-text">这可能需要几秒钟时间</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review and Adjust -->
+                <div class="step-content" id="step3" style="display: none;">
+                    <div class="step-card">
+                        <h2 class="step-title">查看生成结果</h2>
+                        <p class="step-description">您可以追加提问来调整内容，或直接完成创建</p>
+
+                        <!-- Generated Grammar Card -->
+                        <div class="generated-card" id="generatedCard">
+                            <!-- Generated content will be inserted here -->
+                        </div>
+
+                        <!-- Follow-up Questions -->
+                        <div class="followup-section">
+                            <h3 class="followup-title">追加提问调整内容</h3>
+                            <div class="followup-input-group">
+                                <textarea
+                                    class="textarea-large"
+                                    id="followupInput"
+                                    placeholder="例如：能否增加更多例句？能否说明与～ほど的区别？"
+                                    rows="3"
+                                ></textarea>
+                                <button class="btn-secondary" id="followupBtn">提交追问</button>
+                            </div>
+
+                            <!-- Follow-up History -->
+                            <div class="followup-history" id="followupHistory" style="display: none;">
+                                <!-- History will be shown here -->
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-outline" onclick="location.href='index.html'">取消创建</button>
+                            <button class="btn-primary btn-large" id="completeBtn">完成创建</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Success -->
+                <div class="step-content" id="step4" style="display: none;">
+                    <div class="step-card">
+                        <div class="success-section">
+                            <div class="success-icon">✓</div>
+                            <h2 class="success-title">创建成功！</h2>
+                            <p class="success-text">文法卡片已加入公共库，现在可以开始学习了</p>
+                            <div class="success-actions">
+                                <button class="btn-primary btn-large" id="viewCreatedBtn">查看文法详情</button>
+                                <button class="btn-secondary btn-large" onclick="location.href='index.html'">返回首页</button>
+                                <button class="btn-outline" onclick="location.reload()">继续创建</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let currentStep = 1;
+        let createdGrammarId = null;
+        let generatedGrammar = null;
+        let followupCount = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check login
+            if (!isLoggedIn()) {
+                alert('请先登录后再创建文法');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Pre-fill from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query) {
+                document.getElementById('grammarInput').value = query;
+            }
+
+            // Generate button
+            document.getElementById('generateBtn').addEventListener('click', startGeneration);
+
+            // Follow-up button
+            document.getElementById('followupBtn').addEventListener('click', submitFollowup);
+
+            // Complete button
+            document.getElementById('completeBtn').addEventListener('click', completeCreation);
+
+            // View created button
+            document.getElementById('viewCreatedBtn').addEventListener('click', function() {
+                if (createdGrammarId) {
+                    window.location.href = `grammar.html?id=${createdGrammarId}`;
+                }
+            });
+        });
+
+        function startGeneration() {
+            const grammarText = document.getElementById('grammarInput').value.trim();
+            const description = document.getElementById('descriptionInput').value.trim();
+
+            if (!grammarText) {
+                alert('请输入文法关键词或句型');
+                return;
+            }
+
+            goToStep(2);
+
+            // Simulate AI generation
+            setTimeout(() => {
+                generatedGrammar = generateGrammarCard(grammarText, description);
+                displayGeneratedCard();
+                goToStep(3);
+            }, 2000);
+        }
+
+        function displayGeneratedCard() {
+            const card = document.getElementById('generatedCard');
+            card.innerHTML = `
+                <div class="grammar-preview">
+                    <div class="grammar-header">
+                        <h3 class="grammar-title-large">${generatedGrammar.title}</h3>
+                        <span class="grammar-level-badge">${generatedGrammar.level}</span>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h4 class="section-label">含义</h4>
+                        <p class="section-content">${generatedGrammar.meaning}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h4 class="section-label">接续</h4>
+                        <p class="section-content">${generatedGrammar.connection}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h4 class="section-label">语气/语境</h4>
+                        <p class="section-content">${generatedGrammar.context}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h4 class="section-label">例句</h4>
+                        <div class="examples">
+                            ${generatedGrammar.examples.map(ex => `
+                                <div class="example-item">
+                                    <p class="example-jp">${ex.japanese}</p>
+                                    <p class="example-cn">${ex.chinese}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h4 class="section-label">选择题</h4>
+                        <div class="questions-preview">
+                            ${generatedGrammar.questions.map((q, i) => `
+                                <div class="question-preview-item">
+                                    <p class="question-preview-text">${i + 1}. ${q.question}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="grammar-tags">
+                        ${generatedGrammar.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitFollowup() {
+            const followupText = document.getElementById('followupInput').value.trim();
+
+            if (!followupText) {
+                alert('请输入追加提问内容');
+                return;
+            }
+
+            followupCount++;
+
+            // Show loading
+            const followupBtn = document.getElementById('followupBtn');
+            followupBtn.disabled = true;
+            followupBtn.textContent = '处理中...';
+
+            // Simulate AI processing
+            setTimeout(() => {
+                // Update generated grammar based on followup
+                updateGrammarWithFollowup(followupText);
+                displayGeneratedCard();
+
+                // Show in history
+                const history = document.getElementById('followupHistory');
+                history.style.display = 'block';
+                const historyItem = document.createElement('div');
+                historyItem.className = 'followup-history-item';
+                historyItem.innerHTML = `
+                    <div class="followup-question">
+                        <strong>追问 ${followupCount}：</strong>${followupText}
+                    </div>
+                    <div class="followup-response">已根据您的要求更新内容</div>
+                `;
+                history.appendChild(historyItem);
+
+                // Reset input
+                document.getElementById('followupInput').value = '';
+                followupBtn.disabled = false;
+                followupBtn.textContent = '提交追问';
+            }, 1500);
+        }
+
+        function completeCreation() {
+            if (!generatedGrammar) return;
+
+            // Save to database (simulated)
+            createdGrammarId = saveCreatedGrammar(generatedGrammar);
+
+            goToStep(4);
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+
+            // Update progress steps
+            document.querySelectorAll('.step').forEach((el, index) => {
+                if (index + 1 <= step) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+
+            // Show/hide step content
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step${i}`).style.display = i === step ? 'block' : 'none';
+            }
+        }
+
+        function updateGrammarWithFollowup(followupText) {
+            // Simulate updating grammar based on followup
+            // In real implementation, this would call AI API
+            if (followupText.includes('例句')) {
+                generatedGrammar.examples.push({
+                    japanese: '新しい例文が追加されました。',
+                    chinese: '添加了新的例句。'
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语文法学习 - 首页</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">📚 日语文法</h1>
+                <nav class="nav">
+                    <a href="my-grammar.html" class="nav-link" id="myGrammarLink" style="display: none;">我的文法</a>
+                    <button class="btn-login" id="loginBtn">登录</button>
+                    <span class="user-info" id="userInfo" style="display: none;">
+                        <span id="userEmail"></span>
+                        <button class="btn-logout" id="logoutBtn">退出</button>
+                    </span>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-container">
+                    <h2 class="search-title">搜索日语文法</h2>
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            class="search-input"
+                            id="searchInput"
+                            placeholder="输入文法关键词或句型，如：ている、～ば～ほど"
+                        >
+                        <button class="btn-search" id="searchBtn">
+                            <span class="search-icon">🔍</span>
+                        </button>
+                    </div>
+                    <button class="btn-create" id="createBtn" style="display: none;">
+                        ✨ 快速创建文法
+                    </button>
+                </div>
+            </section>
+
+            <!-- Recommended Grammar Section -->
+            <section class="recommended-section">
+                <h2 class="section-title">推荐文法</h2>
+                <div class="grammar-grid" id="grammarGrid">
+                    <!-- Grammar cards will be inserted here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize homepage
+        document.addEventListener('DOMContentLoaded', function() {
+            initAuth();
+            loadRecommendedGrammar();
+
+            // Search functionality
+            document.getElementById('searchBtn').addEventListener('click', handleSearch);
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+
+            // Create button
+            document.getElementById('createBtn').addEventListener('click', function() {
+                if (!isLoggedIn()) {
+                    alert('请先登录后再创建文法');
+                    window.location.href = 'login.html';
+                } else {
+                    window.location.href = 'create.html';
+                }
+            });
+        });
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+            }
+        }
+
+        function loadRecommendedGrammar() {
+            const grammarGrid = document.getElementById('grammarGrid');
+            const recommendedGrammar = getRecommendedGrammar();
+
+            grammarGrid.innerHTML = recommendedGrammar.map(grammar => `
+                <div class="grammar-card" onclick="viewGrammar('${grammar.id}')">
+                    <div class="grammar-card-header">
+                        <h3 class="grammar-title">${grammar.title}</h3>
+                        <span class="grammar-level">${grammar.level}</span>
+                    </div>
+                    <p class="grammar-meaning">${grammar.meaning}</p>
+                    <div class="grammar-tags">
+                        ${grammar.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function viewGrammar(id) {
+            window.location.href = `grammar.html?id=${id}`;
+        }
+    </script>
+</body>
+</html>

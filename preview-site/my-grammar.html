@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的文法 - 日语文法学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="index.html" class="logo">📚 日语文法</a>
+                <nav class="nav">
+                    <span class="user-info" id="userInfo">
+                        <span id="userEmail"></span>
+                        <button class="btn-logout" id="logoutBtn">退出</button>
+                    </span>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="my-grammar-container">
+                <h1 class="page-title">我的文法</h1>
+
+                <!-- Filter and Sort -->
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="created">我创建的</button>
+                        <button class="filter-btn" data-filter="favorited">我收藏的</button>
+                    </div>
+                    <div class="sort-group">
+                        <select class="sort-select" id="sortSelect">
+                            <option value="recent">最近学习</option>
+                            <option value="created_time">创建时间</option>
+                            <option value="title">标题</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Search within my grammar -->
+                <div class="search-box-compact">
+                    <input
+                        type="text"
+                        class="search-input"
+                        id="searchMyGrammar"
+                        placeholder="搜索我的文法..."
+                    >
+                    <button class="btn-search" id="searchMyBtn">🔍</button>
+                </div>
+
+                <!-- Grammar List -->
+                <div class="my-grammar-list" id="myGrammarList">
+                    <!-- Grammar items will be inserted here -->
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">📚</div>
+                    <h3 class="empty-title">还没有文法记录</h3>
+                    <p class="empty-text">开始搜索学习或创建您的第一个文法吧</p>
+                    <div class="empty-actions">
+                        <button class="btn-primary" onclick="location.href='index.html'">去搜索文法</button>
+                        <button class="btn-secondary" onclick="location.href='create.html'">创建文法</button>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Section -->
+                <div class="recent-activity-section" id="recentActivity">
+                    <h2 class="section-title">最近浏览</h2>
+                    <div class="recent-list" id="recentList">
+                        <!-- Recent items will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Practice Stats -->
+                <div class="stats-section" id="statsSection">
+                    <h2 class="section-title">学习统计</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="statCreated">0</div>
+                            <div class="stat-label">创建文法</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statFavorited">0</div>
+                            <div class="stat-label">收藏文法</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statPracticed">0</div>
+                            <div class="stat-label">练习次数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statAccuracy">0%</div>
+                            <div class="stat-label">正确率</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let currentFilter = 'all';
+        let currentSort = 'recent';
+        let allGrammarItems = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check login
+            if (!isLoggedIn()) {
+                alert('请先登录');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            initAuth();
+            loadMyGrammar();
+            loadRecentActivity();
+            loadStats();
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    filterAndDisplayGrammar();
+                });
+            });
+
+            // Sort select
+            document.getElementById('sortSelect').addEventListener('change', function() {
+                currentSort = this.value;
+                filterAndDisplayGrammar();
+            });
+
+            // Search
+            document.getElementById('searchMyBtn').addEventListener('click', handleSearch);
+            document.getElementById('searchMyGrammar').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+        });
+
+        function loadMyGrammar() {
+            const created = getCreatedGrammar();
+            const favorited = getFavorites();
+            const recentViews = getRecentViews();
+
+            // Combine all grammar with metadata
+            const createdItems = created.map(id => ({
+                ...getGrammarById(id),
+                source: 'created',
+                lastView: getLastViewTime(id)
+            }));
+
+            const favoritedItems = favorited
+                .filter(id => !created.includes(id))
+                .map(id => ({
+                    ...getGrammarById(id),
+                    source: 'favorited',
+                    lastView: getLastViewTime(id)
+                }));
+
+            allGrammarItems = [...createdItems, ...favoritedItems];
+
+            filterAndDisplayGrammar();
+        }
+
+        function filterAndDisplayGrammar() {
+            let filtered = allGrammarItems;
+
+            // Apply filter
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(item => item.source === currentFilter);
+            }
+
+            // Apply sort
+            filtered.sort((a, b) => {
+                switch (currentSort) {
+                    case 'recent':
+                        return (b.lastView || 0) - (a.lastView || 0);
+                    case 'created_time':
+                        return (b.createdTime || 0) - (a.createdTime || 0);
+                    case 'title':
+                        return a.title.localeCompare(b.title);
+                    default:
+                        return 0;
+                }
+            });
+
+            displayGrammarList(filtered);
+        }
+
+        function displayGrammarList(items) {
+            const list = document.getElementById('myGrammarList');
+            const emptyState = document.getElementById('emptyState');
+
+            if (items.length === 0) {
+                list.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            list.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            list.innerHTML = items.map(item => `
+                <div class="my-grammar-item" onclick="location.href='grammar.html?id=${item.id}'">
+                    <div class="grammar-item-header">
+                        <h3 class="grammar-item-title">${item.title}</h3>
+                        <span class="grammar-item-badge ${item.source}">
+                            ${item.source === 'created' ? '我创建' : '已收藏'}
+                        </span>
+                    </div>
+                    <p class="grammar-item-meaning">${item.meaning}</p>
+                    <div class="grammar-item-footer">
+                        <div class="grammar-item-tags">
+                            ${item.tags.slice(0, 3).map(tag => `<span class="tag-small">${tag}</span>`).join('')}
+                        </div>
+                        <span class="grammar-item-level">${item.level}</span>
+                    </div>
+                    ${item.lastView ? `
+                        <div class="grammar-item-meta">
+                            最近学习：${formatDate(item.lastView)}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchMyGrammar').value.trim().toLowerCase();
+
+            if (!query) {
+                filterAndDisplayGrammar();
+                return;
+            }
+
+            const filtered = allGrammarItems.filter(item =>
+                item.title.toLowerCase().includes(query) ||
+                item.meaning.toLowerCase().includes(query) ||
+                item.tags.some(tag => tag.toLowerCase().includes(query))
+            );
+
+            displayGrammarList(filtered);
+        }
+
+        function loadRecentActivity() {
+            const recentViews = getRecentViews();
+            const recentList = document.getElementById('recentList');
+
+            if (recentViews.length === 0) {
+                document.getElementById('recentActivity').style.display = 'none';
+                return;
+            }
+
+            recentList.innerHTML = recentViews.slice(0, 5).map(view => {
+                const grammar = getGrammarById(view.id);
+                return `
+                    <div class="recent-item" onclick="location.href='grammar.html?id=${view.id}'">
+                        <div class="recent-item-content">
+                            <h4 class="recent-item-title">${grammar.title}</h4>
+                            <p class="recent-item-time">${formatDate(view.timestamp)}</p>
+                        </div>
+                        <span class="recent-item-arrow">→</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadStats() {
+            const created = getCreatedGrammar();
+            const favorited = getFavorites();
+            const practiceResults = getAllPracticeResults();
+
+            document.getElementById('statCreated').textContent = created.length;
+            document.getElementById('statFavorited').textContent = favorited.length;
+            document.getElementById('statPracticed').textContent = practiceResults.length;
+
+            if (practiceResults.length > 0) {
+                const totalCorrect = practiceResults.reduce((sum, r) => sum + r.correct, 0);
+                const totalQuestions = practiceResults.reduce((sum, r) => sum + r.total, 0);
+                const accuracy = Math.round((totalCorrect / totalQuestions) * 100);
+                document.getElementById('statAccuracy').textContent = accuracy + '%';
+            }
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        function getLastViewTime(grammarId) {
+            const recentViews = getRecentViews();
+            const view = recentViews.find(v => v.id === grammarId);
+            return view ? view.timestamp : null;
+        }
+
+        function getAllPracticeResults() {
+            const results = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('practice_result_')) {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    results.push(data);
+                }
+            }
+            return results;
+        }
+    </script>
+</body>
+</html>

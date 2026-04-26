@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自由造句点评 - 日语文法学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="index.html" class="logo">📚 日语文法</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="sentence-container">
+                <button class="btn-back" onclick="history.back()">← 返回文法详情</button>
+
+                <!-- Grammar context -->
+                <div class="grammar-context" id="grammarContext">
+                    <!-- Grammar info will be inserted here -->
+                </div>
+
+                <!-- Sentence input section -->
+                <div class="sentence-input-section" id="inputSection">
+                    <h2 class="section-title">自由造句</h2>
+                    <p class="section-description">请使用该文法造一个句子，AI 将为您提供详细点评</p>
+
+                    <div class="input-group">
+                        <label class="input-label">您的句子</label>
+                        <textarea
+                            class="textarea-large"
+                            id="sentenceInput"
+                            placeholder="请输入您造的日语句子..."
+                            rows="4"
+                        ></textarea>
+                        <div class="input-hint">提示：尽量使用完整的句子，包含该文法点</div>
+                    </div>
+
+                    <button class="btn-primary btn-large" id="submitBtn">提交点评</button>
+                </div>
+
+                <!-- Loading section -->
+                <div class="loading-section" id="loadingSection" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">AI 正在分析您的句子...</p>
+                </div>
+
+                <!-- Feedback section -->
+                <div class="feedback-result-section" id="feedbackSection" style="display: none;">
+                    <h2 class="section-title">AI 点评结果</h2>
+
+                    <div class="sentence-display">
+                        <h3 class="sentence-label">您的句子</h3>
+                        <p class="sentence-text" id="submittedSentence"></p>
+                    </div>
+
+                    <div class="feedback-card" id="feedbackCard">
+                        <!-- Feedback will be inserted here -->
+                    </div>
+
+                    <div class="feedback-actions">
+                        <button class="btn-secondary btn-large" id="tryAgainBtn">再造一句</button>
+                        <button class="btn-outline" onclick="history.back()">返回文法详情</button>
+                    </div>
+                </div>
+
+                <!-- History section -->
+                <div class="history-section" id="historySection" style="display: none;">
+                    <h3 class="history-title">历史记录</h3>
+                    <div class="history-list" id="historyList">
+                        <!-- History items will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let currentGrammar = null;
+        let feedbackHistory = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check login
+            if (!isLoggedIn()) {
+                alert('请先登录后使用自由造句点评功能');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const grammarId = urlParams.get('id');
+
+            if (grammarId) {
+                loadGrammar(grammarId);
+            }
+
+            document.getElementById('submitBtn').addEventListener('click', submitSentence);
+            document.getElementById('tryAgainBtn').addEventListener('click', resetForm);
+        });
+
+        function loadGrammar(grammarId) {
+            currentGrammar = getGrammarById(grammarId);
+            if (!currentGrammar) {
+                alert('文法不存在');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            document.getElementById('grammarContext').innerHTML = `
+                <h3 class="context-title">${currentGrammar.title}</h3>
+                <p class="context-meaning">${currentGrammar.meaning}</p>
+                <p class="context-connection"><strong>接续：</strong>${currentGrammar.connection}</p>
+            `;
+
+            // Load history
+            loadHistory(grammarId);
+        }
+
+        function submitSentence() {
+            const sentence = document.getElementById('sentenceInput').value.trim();
+
+            if (!sentence) {
+                alert('请输入您造的句子');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+
+            // Simulate AI feedback
+            setTimeout(() => {
+                const feedback = generateFeedback(sentence);
+                displayFeedback(sentence, feedback);
+                saveFeedback(currentGrammar.id, sentence, feedback);
+            }, 2000);
+        }
+
+        function generateFeedback(sentence) {
+            // Simulate AI feedback generation
+            const isCorrect = Math.random() > 0.3;
+
+            return {
+                overall: isCorrect ? 'correct' : 'needs_improvement',
+                score: Math.floor(Math.random() * 30) + 70,
+                grammar_usage: {
+                    correct: isCorrect,
+                    comment: isCorrect
+                        ? '文法使用正确，符合该句型的标准用法。'
+                        : '文法使用存在一些问题，建议参考例句进行调整。'
+                },
+                naturalness: {
+                    score: Math.floor(Math.random() * 20) + 80,
+                    comment: '句子整体比较自然，符合日语表达习惯。'
+                },
+                suggestions: [
+                    '可以尝试使用更丰富的词汇来表达',
+                    '注意动词的时态和语气',
+                    '考虑添加适当的助词使句子更流畅'
+                ],
+                corrected_sentence: isCorrect ? null : '这是修正后的句子示例。',
+                examples: [
+                    {
+                        japanese: currentGrammar.examples[0].japanese,
+                        chinese: currentGrammar.examples[0].chinese
+                    }
+                ]
+            };
+        }
+
+        function displayFeedback(sentence, feedback) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('feedbackSection').style.display = 'block';
+
+            document.getElementById('submittedSentence').textContent = sentence;
+
+            const feedbackCard = document.getElementById('feedbackCard');
+            feedbackCard.innerHTML = `
+                <div class="feedback-overall ${feedback.overall}">
+                    <div class="feedback-score-circle">
+                        <span class="score-number">${feedback.score}</span>
+                        <span class="score-label">分</span>
+                    </div>
+                    <p class="feedback-overall-text">
+                        ${feedback.overall === 'correct' ? '很好！句子整体表达正确' : '还有改进空间'}
+                    </p>
+                </div>
+
+                <div class="feedback-detail">
+                    <h4 class="feedback-detail-title">
+                        <span class="detail-icon">${feedback.grammar_usage.correct ? '✓' : '⚠'}</span>
+                        文法使用
+                    </h4>
+                    <p class="feedback-detail-content">${feedback.grammar_usage.comment}</p>
+                </div>
+
+                <div class="feedback-detail">
+                    <h4 class="feedback-detail-title">
+                        <span class="detail-icon">📊</span>
+                        自然度评分：${feedback.naturalness.score}/100
+                    </h4>
+                    <p class="feedback-detail-content">${feedback.naturalness.comment}</p>
+                </div>
+
+                ${feedback.corrected_sentence ? `
+                    <div class="feedback-detail correction">
+                        <h4 class="feedback-detail-title">
+                            <span class="detail-icon">✏️</span>
+                            修正建议
+                        </h4>
+                        <p class="feedback-detail-content corrected">${feedback.corrected_sentence}</p>
+                    </div>
+                ` : ''}
+
+                <div class="feedback-detail">
+                    <h4 class="feedback-detail-title">
+                        <span class="detail-icon">💡</span>
+                        改进建议
+                    </h4>
+                    <ul class="suggestions-list">
+                        ${feedback.suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>
+
+                <div class="feedback-detail">
+                    <h4 class="feedback-detail-title">
+                        <span class="detail-icon">📖</span>
+                        参考例句
+                    </h4>
+                    <div class="examples">
+                        ${feedback.examples.map(ex => `
+                            <div class="example-item">
+                                <p class="example-jp">${ex.japanese}</p>
+                                <p class="example-cn">${ex.chinese}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Update history
+            loadHistory(currentGrammar.id);
+        }
+
+        function resetForm() {
+            document.getElementById('sentenceInput').value = '';
+            document.getElementById('feedbackSection').style.display = 'none';
+            document.getElementById('inputSection').style.display = 'block';
+        }
+
+        function saveFeedback(grammarId, sentence, feedback) {
+            const history = getSentenceFeedbackHistory(grammarId);
+            history.unshift({
+                sentence: sentence,
+                feedback: feedback,
+                timestamp: new Date().toISOString()
+            });
+
+            // Keep only last 5
+            if (history.length > 5) {
+                history.length = 5;
+            }
+
+            localStorage.setItem(`sentence_history_${grammarId}`, JSON.stringify(history));
+        }
+
+        function loadHistory(grammarId) {
+            const history = getSentenceFeedbackHistory(grammarId);
+
+            if (history.length > 0) {
+                const historySection = document.getElementById('historySection');
+                historySection.style.display = 'block';
+
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = history.map((item, index) => `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <span class="history-number">#${index + 1}</span>
+                            <span class="history-date">${new Date(item.timestamp).toLocaleDateString('zh-CN')}</span>
+                            <span class="history-score ${item.feedback.overall}">${item.feedback.score}分</span>
+                        </div>
+                        <p class="history-sentence">${item.sentence}</p>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function getSentenceFeedbackHistory(grammarId) {
+            const data = localStorage.getItem(`sentence_history_${grammarId}`);
+            return data ? JSON.parse(data) : [];
+        }
+    </script>
+</body>
+</html>

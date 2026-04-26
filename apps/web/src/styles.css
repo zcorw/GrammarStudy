@@ -1,0 +1,16 @@
+:root {
+  color-scheme: light;
+  background: #f5efe4;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(200, 118, 53, 0.16), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(134, 116, 88, 0.14), transparent 30%),
+    #f5efe4;
+}
+
+a {
+  color: inherit;
+}

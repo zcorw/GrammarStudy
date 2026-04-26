@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文法详情 - 日语文法学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="index.html" class="logo">📚 日语文法</a>
+                <nav class="nav">
+                    <a href="my-grammar.html" class="nav-link" id="myGrammarLink" style="display: none;">我的文法</a>
+                    <button class="btn-login" id="loginBtn">登录</button>
+                    <span class="user-info" id="userInfo" style="display: none;">
+                        <span id="userEmail"></span>
+                        <button class="btn-logout" id="logoutBtn">退出</button>
+                    </span>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="grammar-detail-container">
+                <button class="btn-back" onclick="history.back()">← 返回</button>
+
+                <div class="swipe-hint">← 左右滑动查看相近文法 →</div>
+
+                <div class="grammar-carousel" id="grammarCarousel">
+                    <!-- Grammar card will be inserted here -->
+                </div>
+
+                <div class="carousel-indicators" id="carouselIndicators"></div>
+
+                <!-- Action Section -->
+                <div class="action-section">
+                    <h3 class="action-title">开始练习</h3>
+                    <div class="action-grid">
+                        <button class="action-card" id="practiceBtn">
+                            <span class="action-icon">📝</span>
+                            <span class="action-label">选择题练习</span>
+                        </button>
+                        <button class="action-card" id="sentenceBtn">
+                            <span class="action-icon">✍️</span>
+                            <span class="action-label">自由造句点评</span>
+                            <span class="login-required">(需登录)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="favorite-section">
+                    <button class="btn-favorite-large" id="favoriteBtn">
+                        <span id="favoriteIcon">☆</span> 收藏此文法
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let currentGrammar = null;
+        let similarGrammar = [];
+        let currentIndex = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initAuth();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const grammarId = urlParams.get('id');
+
+            if (grammarId) {
+                loadGrammar(grammarId);
+            }
+
+            // Practice button
+            document.getElementById('practiceBtn').addEventListener('click', function() {
+                if (currentGrammar) {
+                    window.location.href = `practice.html?id=${currentGrammar.id}`;
+                }
+            });
+
+            // Sentence feedback button
+            document.getElementById('sentenceBtn').addEventListener('click', function() {
+                if (!isLoggedIn()) {
+                    alert('请先登录后使用自由造句点评功能');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                if (currentGrammar) {
+                    window.location.href = `sentence.html?id=${currentGrammar.id}`;
+                }
+            });
+
+            // Favorite button
+            document.getElementById('favoriteBtn').addEventListener('click', toggleFavorite);
+
+            // Setup swipe
+            setupSwipeGestures();
+        });
+
+        function loadGrammar(id) {
+            const grammar = getGrammarById(id);
+            if (!grammar) {
+                alert('文法不存在');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentGrammar = grammar;
+            similarGrammar = getSimilarGrammar(id);
+
+            // Add current grammar at the beginning
+            const allGrammar = [grammar, ...similarGrammar];
+
+            displayGrammarCards(allGrammar);
+            updateFavoriteButton();
+
+            // Save to recent views
+            saveRecentView(id);
+        }
+
+        function displayGrammarCards(grammarList) {
+            const carousel = document.getElementById('grammarCarousel');
+            const indicators = document.getElementById('carouselIndicators');
+
+            carousel.innerHTML = grammarList.map((grammar, index) => `
+                <div class="grammar-card-full ${index === currentIndex ? 'active' : ''}" data-index="${index}">
+                    <div class="grammar-header">
+                        <h2 class="grammar-title-large">${grammar.title}</h2>
+                        <span class="grammar-level-badge">${grammar.level}</span>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h3 class="section-label">含义</h3>
+                        <p class="section-content">${grammar.meaning}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h3 class="section-label">接续</h3>
+                        <p class="section-content">${grammar.connection}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h3 class="section-label">语气/语境</h3>
+                        <p class="section-content">${grammar.context || '用于日常会话和书面语'}</p>
+                    </div>
+
+                    <div class="grammar-section">
+                        <h3 class="section-label">例句</h3>
+                        <div class="examples">
+                            ${grammar.examples.map(ex => `
+                                <div class="example-item">
+                                    <p class="example-jp">${ex.japanese}</p>
+                                    <p class="example-cn">${ex.chinese}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    ${grammar.comparison ? `
+                        <div class="grammar-section">
+                            <h3 class="section-label">近义文法对比</h3>
+                            <p class="section-content">${grammar.comparison}</p>
+                        </div>
+                    ` : ''}
+
+                    ${grammar.commonMistakes ? `
+                        <div class="grammar-section">
+                            <h3 class="section-label">常见错误</h3>
+                            <p class="section-content">${grammar.commonMistakes}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="grammar-tags">
+                        ${grammar.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Indicators
+            if (grammarList.length > 1) {
+                indicators.innerHTML = grammarList.map((_, index) => `
+                    <span class="indicator ${index === currentIndex ? 'active' : ''}" data-index="${index}"></span>
+                `).join('');
+
+                indicators.querySelectorAll('.indicator').forEach(indicator => {
+                    indicator.addEventListener('click', function() {
+                        currentIndex = parseInt(this.dataset.index);
+                        updateCarousel();
+                    });
+                });
+            }
+        }
+
+        function setupSwipeGestures() {
+            const carousel = document.getElementById('grammarCarousel');
+            let startX = 0;
+            let currentX = 0;
+
+            carousel.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+            });
+
+            carousel.addEventListener('touchmove', function(e) {
+                currentX = e.touches[0].clientX;
+            });
+
+            carousel.addEventListener('touchend', function() {
+                const diff = startX - currentX;
+                const totalCards = document.querySelectorAll('.grammar-card-full').length;
+
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0 && currentIndex < totalCards - 1) {
+                        currentIndex++;
+                        updateCarousel();
+                    } else if (diff < 0 && currentIndex > 0) {
+                        currentIndex--;
+                        updateCarousel();
+                    }
+                }
+            });
+        }
+
+        function updateCarousel() {
+            const cards = document.querySelectorAll('.grammar-card-full');
+            const indicators = document.querySelectorAll('.indicator');
+
+            cards.forEach((card, index) => {
+                card.classList.toggle('active', index === currentIndex);
+            });
+
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === currentIndex);
+            });
+
+            updateFavoriteButton();
+        }
+
+        function toggleFavorite() {
+            if (!isLoggedIn()) {
+                alert('请先登录后再收藏');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (!currentGrammar) return;
+
+            const favorites = getFavorites();
+            const index = favorites.indexOf(currentGrammar.id);
+
+            if (index > -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(currentGrammar.id);
+            }
+
+            saveFavorites(favorites);
+            updateFavoriteButton();
+        }
+
+        function updateFavoriteButton() {
+            if (!currentGrammar) return;
+
+            const favorites = getFavorites();
+            const isFavorited = favorites.includes(currentGrammar.id);
+
+            document.getElementById('favoriteIcon').textContent = isFavorited ? '★' : '☆';
+            document.getElementById('favoriteBtn').innerHTML = isFavorited
+                ? '<span id="favoriteIcon">★</span> 已收藏'
+                : '<span id="favoriteIcon">☆</span> 收藏此文法';
+        }
+    </script>
+</body>
+</html>
