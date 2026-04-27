@@ -65,6 +65,9 @@ jobs:
           pnpm --dir apps/web lint
           pnpm --dir apps/web typecheck
           python -m ruff check apps/api/app apps/api/tests
+          cd apps/api
+          python -m alembic upgrade head
+          cd ../..
           python -m pytest apps/api/tests -q
 
   build-and-deploy:
