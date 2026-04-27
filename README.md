@@ -110,6 +110,17 @@ docker compose down
 - API: `http://localhost:8000`
 - API Docs: `http://localhost:8000/docs`
 
+## 生产部署
+
+VPS 自动部署使用 GitHub Actions 和 `docker-compose.prod.yml`。
+
+生产环境会执行 Alembic 数据库迁移并创建管理员账号，但不会导入演示文法、演示邀请码或测试数据。
+
+部署方案总览见 [docs/deployment-overview.md](docs/deployment-overview.md)。
+
+- VPS 拉仓库构建：[docs/deployment-vps-git-pull.md](docs/deployment-vps-git-pull.md)
+- Actions 构建镜像，VPS 拉镜像运行：[docs/deployment-vps-image-pull.md](docs/deployment-vps-image-pull.md)
+
 ## 演示准入
 
 - 演示邀请码：`DEMO-ACCESS`

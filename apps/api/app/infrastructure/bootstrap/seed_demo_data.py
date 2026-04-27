@@ -14,6 +14,11 @@ from app.infrastructure.persistence.models.user import InvitationCodeModel, User
 from app.infrastructure.security.password_hasher import PasswordHasher
 
 
+def seed_admin_account(session: Session, settings: Settings) -> None:
+    _seed_admin_account(session, settings)
+    session.commit()
+
+
 def seed_demo_grammar(session: Session, settings: Settings) -> None:
     _seed_admin_account(session, settings)
     _seed_demo_invite(session)

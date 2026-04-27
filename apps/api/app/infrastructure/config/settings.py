@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     model_name: str = "gpt-5-mini"
     openai_api_key: str | None = None
     ai_timeout_seconds: float = 60.0
+    seed_demo_data: bool = True
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 

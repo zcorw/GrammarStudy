@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.infrastructure.bootstrap.seed_demo_data import seed_demo_grammar
+from app.infrastructure.bootstrap.seed_demo_data import seed_admin_account, seed_demo_grammar
 from app.infrastructure.config.settings import get_settings
 from app.infrastructure.database.session import SessionLocal
 from app.presentation.api.errors import install_error_handlers
@@ -22,7 +22,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
         with SessionLocal() as session:
             session.execute(text("SELECT 1"))
-            seed_demo_grammar(session, settings)
+            if settings.seed_demo_data:
+                seed_demo_grammar(session, settings)
+            else:
+                seed_admin_account(session, settings)
     except SQLAlchemyError as exc:
         logger.warning("Database bootstrap skipped: %s", exc)
     yield

@@ -30,6 +30,7 @@ services:
       MODEL_PROVIDER: ${MODEL_PROVIDER:-openai}
       MODEL_NAME: ${MODEL_NAME:-gpt-5-mini}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
     depends_on:
       db:
         condition: service_healthy
